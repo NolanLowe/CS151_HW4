@@ -18,7 +18,6 @@ import javax.swing.*;
  * last updated: 3/10/2017
  */
 public class PlannerView implements ActionListener{
-	private ArrayList<Event> events;
 	private JFrame frame;
 	private JPanel monthView, header, dayView;
 	
@@ -47,11 +46,15 @@ public class PlannerView implements ActionListener{
 	public void start()
 	{
 		monthPanel();
-		yearPanel();
+		headerPanel();
+		dayPanel();
+		
 		frame.setLayout(new BorderLayout());
 	
-		frame.add(monthView, BorderLayout.EAST);
+		frame.add(header, BorderLayout.NORTH);
+		frame.add(monthView, BorderLayout.WEST);
 		frame.add(dayView, BorderLayout.CENTER);
+
 		
 		// set defaultOp and visible
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -64,20 +67,20 @@ public class PlannerView implements ActionListener{
 
 	
 	/**
-	 * constructs the 'look' of the monthView panel
-	 * creates a 'calendar' look.
-	 * uses the date of the date object to pick the month
-	 * highlights any events with the color green
-	 * makes the current day a larger font
+	 * 
 	 */
 	public void monthPanel()
 	{
 		// make the grid of numbered days that will make up monthView of calendar display
 		monthView.setLayout(new GridLayout(7, 7));
+		monthView.setBackground(Color.WHITE);
 		
 		// add in row saying days of week, MON, Tues, etc
 		for(String day : PlannerModel.days){
 			JTextArea dText = new JTextArea(day);
+			changeFontSize(dText, 5);
+			dText.setForeground(Color.WHITE);
+			dText.setBackground(Color.BLACK);
 			dText.setEditable(false);
 			monthView.add(dText);
 		}
@@ -90,23 +93,32 @@ public class PlannerView implements ActionListener{
 			monthView.add(blank);
 		}
 		
-		
-		ArrayList<Event> eventDays = model.getEventsForMonth();
+		ArrayList<Event> eventDays = model.getEventsForSelectedMonth();
 		
 		
 		// add in numbered days
 		for(int i = 1; i < model.lengthOfMonth + 1; i++)
 		{
 			JButton numDay = new JButton();
+			formatHeaderButton(numDay);
 			
 			// attach appropriate action listener (for the clickz)
 			ActionListener l = getListener(i);
 			numDay.addActionListener(l);
 			
-			// if it's the current day, outline the box
-			if(model.currentDaySelected(i))
+			// if it's the currently selected day, outline the box
+			// (selected day defaults to current day ON LAUNCH)
+			if(model.currentDay(i))
 			{
-				numDay.setBackground(Color.BLUE);
+				invertButton(numDay);
+				changeFontSize(numDay, 5);
+			}
+			
+			// if day is current actual date, increase the font size
+			if(model.selectedDay(i))
+			{
+				numDay.setBackground(Color.CYAN);
+				numDay.setBorderPainted(true);
 			}
 				
 				
@@ -115,11 +127,11 @@ public class PlannerView implements ActionListener{
 			{
 				if(e.day == i)
 				{
-					
+					numDay.setBackground(Color.GRAY);
 				}
 			}
 			
-			// add the text, add to monthView panel
+			// finally add the text and add to monthView panel
 			numDay.setText(Integer.toString(i));
 			monthView.add(numDay);
 			
@@ -128,10 +140,8 @@ public class PlannerView implements ActionListener{
 		for(int i = 0; i < 42 - model.lengthOfMonth - model.firstDayOfMonth + 1; i++)
 			monthView.add(new JTextArea());
 
-		monthView.repaint();
 		frame.validate();
 	}
-	
 	
 	/**
 	 * actionlistener class used by the buttons on the calendar monthly view
@@ -139,13 +149,14 @@ public class PlannerView implements ActionListener{
 	 * @param day
 	 * @return
 	 */
-	public ActionListener getListener(int day)
+	private ActionListener getListener(int day)
 	{
 		return new ActionListener() {
-			private final int d = day;
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				model.setDate(-1, -1, d);
+				model.setDate(-1, -1, day);
+				System.out.println("Button: " + day);
+				update();
 			}
 		};
 	}
@@ -155,37 +166,151 @@ public class PlannerView implements ActionListener{
 	{
 		monthView.removeAll();
 		dayView.removeAll();
+		header.removeAll();
 		monthPanel();
 		dayPanel();
+		headerPanel();
 		frame.repaint();
 	}
 
+	/**
+	 * 
+	 */
+	public void createPanel()
+	{
+		// clear out the existing display, replace it with the create panel
+		header.removeAll();
+		header.setBackground(Color.WHITE);
+		header.setLayout(new GridLayout(1, 5));
+		header.setPreferredSize(new Dimension(1200, 50));
+		
+		// the jtextfield
+		JTextField title = new JTextField("Untitled Event");
+		changeFontSize(title, 10);
+		
+		// the date field, time start field, and time end field
+		JButton date;
+		date = new JButton(model.getSelectedDate());
+		changeFontSize(date, 10);
+		formatHeaderButton(date);
+		date.setEnabled(false);
+
+		JTextField start, end;
+		start = new JTextField("00:00");
+		end = new JTextField("00:00");
+		changeFontSize(start, 10);
+		changeFontSize(end, 10);
+		
+		
+		// the save button
+		JButton save = new JButton("SAVE");
+		formatHeaderButton(save);
+		save.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String t = title.getText();
+				String st = start.getText();
+				String en = end.getText();
+				model.addEvent(t, st, en);
+				
+				header.removeAll();
+				headerPanel();
+			}
+		});
+
+		header.add(title);
+		header.add(date);
+		header.add(start);
+		header.add(end);
+		header.add(save);
+		
+		frame.validate();
+	}
 
 	/**
 	 * makes the look of the 'header' instance variable into a banner
 	 * banner includes the current year and month
 	 */
-	public void yearPanel()
+	public void headerPanel()
 	{
-		// the returning panel value
-		header.removeAll();
+		header.setBackground(Color.WHITE);
+		header.setLayout(new GridLayout(1, 5));
+		header.setPreferredSize(new Dimension(1200, 50));
 		
 		// make the MONTH + YEAR text area
-		JTextArea words = new JTextArea();
-		changeFontSize(words, 15);
-		
-		// was a problem with it being a month ahead, I have no idea why, it drove me insane
-		// here's a bad but working fix
-		model.changeDate(0, 1, 0); // here
+		JButton words = new JButton();
+		formatHeaderButton(words);
+		changeFontSize(words, 20);
+
 		words.setText(model.getMonth() + " " + model.getYear());
-		model.changeDate(0, -1, 0); // here
-		
-		words.setEditable(false);
 		header.add(words);
 		
-		header.repaint();
+		// MAKE ALL THE  BUTTONS
+		
+		// make the back & forward buttons
+		JButton back = new JButton("<");
+		formatHeaderButton(back);
+		back.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				model.changeDate(0, 0, -1);
+				update();
+			}
+		});
+		
+		JButton forward = new JButton(">");
+		formatHeaderButton(forward);
+		forward.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				model.changeDate(0, 0, 1);
+				update();
+			}
+		});
+		
+		// make the create button
+		JButton create = new JButton("CREATE");
+		formatHeaderButton(create);
+		create.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				createPanel();
+			}
+		});
+		
+		// make the quit button
+		JButton quit = new JButton("QUIT");
+		formatHeaderButton(quit);
+		quit.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				model.saveEvents();
+				System.exit(0);
+			}
+		});
+		
+		// ADD ALL THE BUTTONS
+		
+		header.add(back);
+		header.add(forward);
+		header.add(create);
+		header.add(quit);
+
 		frame.validate();
 	}
+	private void formatHeaderButton(JButton b)
+	{
+		b.setBackground(Color.WHITE);
+		b.setFocusPainted(false);
+		b.setBorderPainted(true);
+	}
+	private void invertButton(JComponent j)
+	{
+		j.setBackground(Color.BLACK);
+		j.setForeground(Color.WHITE);
+	}
+	
 
 
 	/**
@@ -199,8 +324,7 @@ public class PlannerView implements ActionListener{
 	 */
 	public void dayPanel()
 	{
-		// initialize superpanel
-		dayView.removeAll();
+		dayView.setBackground(Color.WHITE);
 		
 		// add the day and number sub-header
 		String wordDay = model.getDay();
@@ -213,29 +337,22 @@ public class PlannerView implements ActionListener{
 		dayView.add(header, BorderLayout.NORTH);
 		
 		
-		// make event list sub-panel
+		// make the list with hours : title of event + time
 		JPanel list = new JPanel();
-
-		// add events that occur on that day
-		int numEvents = 0;
+		
+		ArrayList<Event> events = model.getEventsForSelectedDay();
+		
 		for(Event e : events)
 		{
-			int eventYear = model.sYear;
-			int eventDay = model.sDay;
-			int eventMonth = model.sMonth;
-			if(eventYear == model.sYear && eventDay == model.sDay && eventMonth == model.sMonth + 1)
-			{
-				JTextArea j = new JTextArea();
-				changeFontSize(j, 5);
-				j.setText(e.toString_onlyEvent());
-				list.add(j);
-				numEvents++;
-			}
+			JTextArea j = new JTextArea();
+			changeFontSize(j, 5);
+			j.setText(e.toString_onlyEvent());
+			list.add(j);
 		}
-		list.setLayout(new GridLayout(numEvents, 1));
+
 		
 		dayView.add(list, BorderLayout.CENTER);
-		dayView.repaint();
+
 		frame.validate();
 	}
 
@@ -276,7 +393,7 @@ public class PlannerView implements ActionListener{
 	 * @param j the JTextArea object
 	 * @param ammount will be added to the font size, negative values will decrese font size
 	 */
-	public void changeFontSize(JTextArea j, int ammount)
+	public void changeFontSize(JComponent j, int ammount)
 	{
 		Font f = j.getFont();
 		Font biggerF = new Font(f.getFontName(), f.getStyle(), f.getSize() + ammount);

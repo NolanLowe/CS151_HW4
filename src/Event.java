@@ -1,10 +1,16 @@
+import java.io.Serializable;
+
 /**
  * Event class
  * used to keep event titles and starting / ending times
  * @author nolan
  * last updated: 3/10/2017
  */
-public class Event{
+public class Event implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 7042137329929006807L;
 	public String title;
 	public int day, month, year;
 	public String startTime; // HH/MM, 24 hour format

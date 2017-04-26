@@ -42,17 +42,35 @@ public class PlannerModel implements Serializable {
 	}
 	
 	/**
-	 * checks if the passed params match the current date
+	 * checks if the passed day matches the current ACTUAL date
+	 * assumes month and year are already a match
 	 * @param day
 	 * @return true if a match, false otherwise
 	 */
-	public boolean currentDaySelected(int day)
+	public boolean currentDay(int day)
 	{
 		if(day == currentDay.get(Calendar.DAY_OF_MONTH))
 			if(sMonth == currentDay.get(Calendar.MONTH))
 				if(sYear == currentDay.get(Calendar.YEAR))
 					return true;
 				
+		return false;
+	}
+	/**
+	 * checks if the passed day matches the current selected date (selected != actual)
+	 * @param day
+	 * @return
+	 */
+	public boolean selectedDay(int day)
+	{
+		if(day == selectedDay.get(Calendar.DAY_OF_MONTH))	
+		{
+			if(sMonth == selectedDay.get(Calendar.MONTH))
+			{
+				if(sYear == selectedDay.get(Calendar.YEAR))
+					return true;
+			}
+		}		
 		return false;
 	}
 	
@@ -137,11 +155,10 @@ public class PlannerModel implements Serializable {
 	
 
 	/**
-	 * sets the current date to the params provided.
-	 * a value of -1 will leave that field with its existing value
-	 * @param year the year to set the selectedDayendar object to
-	 * @param month the month ''
-	 * @param day the day ''
+	 * sets the current date to the params provided. a value of -1 will leave that field with its existing value
+	 * @param year 
+	 * @param month
+	 * @param day 
 	 */
 	public void setDate(int year, int month, int day)
 	{
@@ -164,7 +181,7 @@ public class PlannerModel implements Serializable {
 	 */
 	public String getMonth()
 	{
-		return months[sMonth- 1];
+		return months[sMonth];
 	}
 	/**
 	 * @return the selected year of the date object (format YYYY - ex: 2017)
@@ -175,13 +192,7 @@ public class PlannerModel implements Serializable {
 	}
 	
 
-	/**
-	 * returns an arraylist containing all the events occuring in the existing selected year and month
-	 * @param month
-	 * @param year
-	 * @return
-	 */
-	public ArrayList<Event> getEventsForMonth()
+	public ArrayList<Event> getEventsForSelectedMonth()
 	{
 		sortEvents();
 		ArrayList<Event> forMonth = new ArrayList<Event>();
@@ -193,6 +204,46 @@ public class PlannerModel implements Serializable {
 		}
 		
 		return forMonth;
+	}
+	
+	public ArrayList<Event> getEventsForSelectedDay()
+	{
+		sortEvents();
+		ArrayList<Event> forDay = new ArrayList<Event>();
+		
+		for(Event e : events)
+		{
+			if(e.day == sDay && e.month == sMonth && e.year == sYear)
+				forDay.add(e);
+		}
+		
+		return forDay;
+	}
+	
+	
+	public String getSelectedDate()
+	{
+		return selectedDay.get(Calendar.MONTH) + "/" + selectedDay.get(Calendar.DAY_OF_MONTH) + "/" + getYear();
+	}
+	
+	
+	
+	public void addEvent(String title, String startTime, String endTime)
+	{
+		// properly format the date to include leading zeros if necessary.
+		String d = "";
+		if(selectedDay.get(Calendar.MONTH) < 10) d += "0";
+		d += selectedDay.get(Calendar.MONTH);
+		
+		if(selectedDay.get(Calendar.DAY_OF_MONTH) < 10) d += "0";
+		d += selectedDay.get(Calendar.DAY_OF_MONTH);
+		
+		d += selectedDay.get(Calendar.YEAR);
+		
+		
+		Event e = new Event(title, d, startTime, endTime);
+		events.add(e);
+		sortEvents();
 	}
 	
 	/**
