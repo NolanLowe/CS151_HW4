@@ -6,10 +6,9 @@
  */
 public class Event{
 	public String title;
-	public String d;
+	public int day, month, year;
 	public String startTime; // HH/MM, 24 hour format
 	public String endTime;
-	public Date date;
 	
 	
 	/**
@@ -24,41 +23,15 @@ public class Event{
 		this.title = title;
 		this.startTime = startTime;
 		this.endTime = endTime;
-		this.d = date;
 		
 		// date is in format MMDDYYYY
 		// set up the date instance variable with the proper values 
-		int month = Integer.valueOf( date.substring(0, 2));
-		int day = Integer.valueOf( date.substring(2, 4) );
-		int year = Integer.valueOf( date.substring(4, 8));
-		
-		this.date = new Date();
-		this.date.setDate(year, month, day);
+		month = Integer.valueOf( date.substring(0, 2));
+	    day = Integer.valueOf( date.substring(2, 4) );
+		year = Integer.valueOf( date.substring(4, 8));
 	}
-
 	
-
-	/**
-	 * @return a string containing the contents of the event in format:
-	 * [day of week] [month] [day] [start time] - [end time] [event title]
-	 */
-	@Override
-	public String toString() {
-		
-		// get the written day of the week
-		String wordDay = date.getDay();
-		
-		// assemble the returning string
-		String rv = "";
-		
-		// add STRINGDAYOFWEEK MONTH DAYNUMBER
-		rv += wordDay + " " + date.getMonth();
-		
-		// add DAYNUMBER STARTTIME : ENDTIME TITLE
-		rv +=  " " + date.cDay + " " + startTime + "-" + endTime + " " + title;
-
-		return rv;	
-	}
+	
 
 	/**
 	 * @return a string containing the contents of the event in format:
