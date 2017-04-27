@@ -13,7 +13,7 @@ public class Event implements Serializable{
 	private static final long serialVersionUID = 7042137329929006807L;
 	public String title;
 	public int day, month, year;
-	public String startTime; // HH/MM, 24 hour format
+	public String startTime; // stored as HH:MM including [:] , 24 hour format
 	public String endTime;
 	
 	
@@ -45,6 +45,38 @@ public class Event implements Serializable{
 	 */
 	public String toString_onlyEvent() {
 		return " " + startTime + "-" + endTime + " " + title;
+	}
+
+	
+	/**
+	 * tests implicit and param to see if they occur in the same time slot.
+	 * @param e
+	 * @return false if they do not occur in the same time slot, true otherwise
+	 */
+	public boolean overlap(Event e)
+	{
+		// easy case
+		if(day != e.day || month != e.month || year != e.year) return false;
+		
+		// time slot overlap; check the ranges
+		// convert the start and end values into minutes for easier comparison
+		int aStart = Integer.valueOf(startTime.substring(0, 2)) * 60 
+				   + Integer.valueOf(startTime.substring(3, 5));
+		
+		int bStart = Integer.valueOf(e.startTime.substring(0, 2)) * 60
+				   + Integer.valueOf(e.startTime.substring(3, 5));
+		
+		int aFin = Integer.valueOf(endTime.substring(0, 2)) * 60
+				 + Integer.valueOf(endTime.substring(3, 5));
+		int bFin = Integer.valueOf(endTime.substring(0, 2)) * 60
+				 + Integer.valueOf(endTime.substring(3, 5));
+		
+		if(aStart >= bStart && aStart < bFin) return true;
+		if(bStart >= aStart && bStart < aFin) return true;
+		
+		// clean
+		System.out.println("overlap detected");
+		return false;
 	}
 
 	

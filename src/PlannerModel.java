@@ -75,7 +75,7 @@ public class PlannerModel implements Serializable {
 	}
 	
 	/**
-	 * trys to load an events arraylist from the bin file selectedDayled data.txt
+	 * tries to load an events arraylist from the bin file selectedDayled data.txt
 	 * if one does not exist, creates one, leaving it blank
 	 */
 	@SuppressWarnings("unchecked")
@@ -228,7 +228,7 @@ public class PlannerModel implements Serializable {
 	
 	
 	
-	public void addEvent(String title, String startTime, String endTime)
+	public boolean addEvent(String title, String startTime, String endTime)
 	{
 		// properly format the date to include leading zeros if necessary.
 		String d = "";
@@ -237,13 +237,26 @@ public class PlannerModel implements Serializable {
 		
 		if(selectedDay.get(Calendar.DAY_OF_MONTH) < 10) d += "0";
 		d += selectedDay.get(Calendar.DAY_OF_MONTH);
-		
+
 		d += selectedDay.get(Calendar.YEAR);
 		
-		
+		// make the new event with the now formatted data
 		Event e = new Event(title, d, startTime, endTime);
+		
+		
+		// now make sure that your newly formatted date doesn't occur in another event
+		ArrayList<Event> today = getEventsForSelectedDay();
+		for(Event event : today)
+		{
+			if(event.overlap(e)) return false;
+		}
+		
+		// there was no overlap, go ahead and add new event to list
 		events.add(e);
 		sortEvents();
+		
+		
+		return true;
 	}
 	
 	/**

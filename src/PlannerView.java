@@ -6,6 +6,8 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.*;
 import java.util.*;
 
@@ -19,7 +21,7 @@ import javax.swing.*;
  */
 public class PlannerView implements ActionListener{
 	private JFrame frame;
-	private JPanel monthView, header, dayView;
+	private JPanel monthView, header, dayView, createView;
 	
 	private PlannerModel model;
 
@@ -55,8 +57,6 @@ public class PlannerView implements ActionListener{
 		frame.add(monthView, BorderLayout.WEST);
 		frame.add(dayView, BorderLayout.CENTER);
 
-		
-		// set defaultOp and visible
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.setVisible(true);
@@ -100,7 +100,7 @@ public class PlannerView implements ActionListener{
 		for(int i = 1; i < model.lengthOfMonth + 1; i++)
 		{
 			JButton numDay = new JButton();
-			formatHeaderButton(numDay);
+			formatButton(numDay);
 			
 			// attach appropriate action listener (for the clickz)
 			ActionListener l = getListener(i);
@@ -187,14 +187,39 @@ public class PlannerView implements ActionListener{
 		// the jtextfield
 		JTextField title = new JTextField("Untitled Event");
 		changeFontSize(title, 10);
+		title.setForeground(Color.GRAY);
+		title.addMouseListener(new MouseListener()
+		{
+			@Override
+			public void mouseReleased(MouseEvent e){}
+			@Override
+			public void mousePressed(MouseEvent e){}
+			@Override
+			public void mouseEntered(MouseEvent e){}
+			@Override
+			public void mouseExited(MouseEvent e)
+			{
+				if(title.getText().equals("")) {
+					title.setText("Untitled Event");
+					title.setForeground(Color.GRAY);
+				}
+			}
+			@Override
+			public void mouseClicked(MouseEvent e) 
+			{
+				title.setText(""); title.setForeground(Color.BLACK);	
+			}
+		});
+
 		
-		// the date field, time start field, and time end field
+		// the date field
 		JButton date;
 		date = new JButton(model.getSelectedDate());
 		changeFontSize(date, 10);
-		formatHeaderButton(date);
-		date.setEnabled(false);
+		formatButton(date);
 
+		
+		// the start and end fields
 		JTextField start, end;
 		start = new JTextField("00:00");
 		end = new JTextField("00:00");
@@ -202,32 +227,34 @@ public class PlannerView implements ActionListener{
 		changeFontSize(end, 10);
 		
 		
+		
 		// the save button
 		JButton save = new JButton("SAVE");
-		formatHeaderButton(save);
+		formatButton(save);
 		save.addActionListener(new ActionListener() {
-			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				String t = title.getText();
 				String st = start.getText();
 				String en = end.getText();
 				model.addEvent(t, st, en);
-				
-				header.removeAll();
-				headerPanel();
+				update();	
 			}
 		});
 
+		// finally add in all the pieces
 		header.add(title);
 		header.add(date);
 		header.add(start);
 		header.add(end);
 		header.add(save);
 		
+		frame.add(header, BorderLayout.NORTH);
 		frame.validate();
 	}
 
+	
+	
 	/**
 	 * makes the look of the 'header' instance variable into a banner
 	 * banner includes the current year and month
@@ -240,7 +267,7 @@ public class PlannerView implements ActionListener{
 		
 		// make the MONTH + YEAR text area
 		JButton words = new JButton();
-		formatHeaderButton(words);
+		formatButton(words);
 		changeFontSize(words, 20);
 
 		words.setText(model.getMonth() + " " + model.getYear());
@@ -250,7 +277,7 @@ public class PlannerView implements ActionListener{
 		
 		// make the back & forward buttons
 		JButton back = new JButton("<");
-		formatHeaderButton(back);
+		formatButton(back);
 		back.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -260,7 +287,7 @@ public class PlannerView implements ActionListener{
 		});
 		
 		JButton forward = new JButton(">");
-		formatHeaderButton(forward);
+		formatButton(forward);
 		forward.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -271,7 +298,7 @@ public class PlannerView implements ActionListener{
 		
 		// make the create button
 		JButton create = new JButton("CREATE");
-		formatHeaderButton(create);
+		formatButton(create);
 		create.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -281,7 +308,7 @@ public class PlannerView implements ActionListener{
 		
 		// make the quit button
 		JButton quit = new JButton("QUIT");
-		formatHeaderButton(quit);
+		formatButton(quit);
 		quit.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -299,7 +326,7 @@ public class PlannerView implements ActionListener{
 
 		frame.validate();
 	}
-	private void formatHeaderButton(JButton b)
+	private void formatButton(JButton b)
 	{
 		b.setBackground(Color.WHITE);
 		b.setFocusPainted(false);
@@ -325,6 +352,7 @@ public class PlannerView implements ActionListener{
 	public void dayPanel()
 	{
 		dayView.setBackground(Color.WHITE);
+		dayView.setLayout(new BorderLayout());
 		
 		// add the day and number sub-header
 		String wordDay = model.getDay();
@@ -359,21 +387,7 @@ public class PlannerView implements ActionListener{
 	
 	
 
-	
-	/**
-	 * The user can browse scheduled events. 
-	 * The calendar displays all the events scheduled in the calendar in the order of starting date and starting time. 
-	 * An example presentation of events is as follows:
-	 * 2017  
-	 * Friday March 17 13:15 - 14:00 Dentist   
-	 * Tuesday April 25 15:00 - 16:00 Job Interview 2017   
-	 * Friday June 2 17:00 Leave for Korea
-	 */
-	public void eventList()
-	{
 
-	}
-	
 
 
 	
