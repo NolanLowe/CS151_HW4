@@ -68,8 +68,8 @@ public class Event implements Serializable{
 		
 		int aFin = Integer.valueOf(endTime.substring(0, 2)) * 60
 				 + Integer.valueOf(endTime.substring(3, 5));
-		int bFin = Integer.valueOf(endTime.substring(0, 2)) * 60
-				 + Integer.valueOf(endTime.substring(3, 5));
+		int bFin = Integer.valueOf(e.endTime.substring(0, 2)) * 60
+				 + Integer.valueOf(e.endTime.substring(3, 5));
 		
 		if(aStart >= bStart && aStart < bFin) return true;
 		if(bStart >= aStart && bStart < aFin) return true;

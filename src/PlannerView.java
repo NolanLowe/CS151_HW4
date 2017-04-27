@@ -19,9 +19,9 @@ import javax.swing.*;
  * @author nolan
  * last updated: 3/10/2017
  */
-public class PlannerView implements ActionListener{
+public class PlannerView{
 	private JFrame frame;
-	private JPanel monthView, header, dayView, createView;
+	private JPanel monthView, header, dayView;
 	
 	private PlannerModel model;
 
@@ -63,9 +63,6 @@ public class PlannerView implements ActionListener{
 	}
 	
 
-	
-
-	
 	/**
 	 * 
 	 */
@@ -162,6 +159,9 @@ public class PlannerView implements ActionListener{
 	}
 
 
+	/**
+	 * functionally a brute force 'repaint' -- used after View pushes changes to model, to reflect the new data
+	 */
 	public void update()
 	{
 		monthView.removeAll();
@@ -173,8 +173,9 @@ public class PlannerView implements ActionListener{
 		frame.repaint();
 	}
 
+
 	/**
-	 * 
+	 * creates the 'look' of the create-new-event panel, paints it over the previous 'header' panel.
 	 */
 	public void createPanel()
 	{
@@ -227,7 +228,6 @@ public class PlannerView implements ActionListener{
 		changeFontSize(end, 10);
 		
 		
-		
 		// the save button
 		JButton save = new JButton("SAVE");
 		formatButton(save);
@@ -266,9 +266,9 @@ public class PlannerView implements ActionListener{
 		header.setPreferredSize(new Dimension(1200, 50));
 		
 		// make the MONTH + YEAR text area
-		JButton words = new JButton();
+		JLabel words = new JLabel();
 		formatButton(words);
-		changeFontSize(words, 20);
+		changeFontSize(words, 26);
 
 		words.setText(model.getMonth() + " " + model.getYear());
 		header.add(words);
@@ -326,11 +326,10 @@ public class PlannerView implements ActionListener{
 
 		frame.validate();
 	}
-	private void formatButton(JButton b)
+	private void formatButton(JComponent b)
 	{
 		b.setBackground(Color.WHITE);
-		b.setFocusPainted(false);
-		b.setBorderPainted(true);
+		b.setFocusable(false);
 	}
 	private void invertButton(JComponent j)
 	{
@@ -351,56 +350,70 @@ public class PlannerView implements ActionListener{
 	 */
 	public void dayPanel()
 	{
+		// the main JPanel, will collect pieces 
 		dayView.setBackground(Color.WHITE);
 		dayView.setLayout(new BorderLayout());
 		
+		// here is the top banner, with current day of week + #month /#day
 		// add the day and number sub-header
-		String wordDay = model.getDay();
-		JTextArea header = new JTextArea();
-		changeFontSize(header, 15);
-		header.setText(wordDay + " " + model.sDay);
-		header.setEditable(false);
+		JLabel header = new JLabel(model.getDay() + " " + (model.sMonth + 1) + "/" + model.sDay, SwingConstants.CENTER);
+		changeFontSize(header, 10);
 		
 		// add header to panel
 		dayView.add(header, BorderLayout.NORTH);
 		
-		
-		// make the list with hours : title of event + time
-		JPanel list = new JPanel();
-		
+
+		// I'll be using a jtable
+		// construct the arrays for the column names & the times / event titles
 		ArrayList<Event> events = model.getEventsForSelectedDay();
+
+		// create the array of text / hours to place into a JTable
+		String[][] content = new String[24][4];
+		String[] names = {"Hour", "Event title", "Event start", "Event end"};
 		
-		for(Event e : events)
+		// construct the table and set some default behaviors
+		JTable t = new JTable(content, names);
+		t.setEnabled(false);
+		
+		int rowHeight = t.getRowHeight();
+		for(int i = 0; i < 24; i++)
 		{
-			JTextArea j = new JTextArea();
-			changeFontSize(j, 5);
-			j.setText(e.toString_onlyEvent());
-			list.add(j);
+			// set the value for the 'hour' collumn
+			content[i][0] = Integer.toString(i);
+			
+			// initalize the other values to start of HTML tag 
+			for(int y = 1; y < 4; y++) content[i][y] = "<html>";
+
+			// go through the events, appending their values to the existing blanks (if they occur on said hour)
+			// if there are multiple, keep track of how many, increase that row's height to reflect this.
+			int numEvents = 0;
+			for(Event e : events)
+			{
+				int eventStart = Integer.valueOf(e.startTime.substring(0, 2));
+				if(eventStart == i)
+				{
+					numEvents++;
+					t.setRowHeight(i, numEvents * rowHeight);
+
+					content[i][1] += e.title + "<br>";
+					content[i][2] += e.startTime + "<br>";
+					content[i][3] += e.endTime + "<br>";
+				}
+			}	
+			for(int y = 1; y < 4; y++) content[i][y] += "</html>";
+			
 		}
-
 		
-		dayView.add(list, BorderLayout.CENTER);
-
+		// dayview panel is now complete, format it for the scrollbar and add to the frame
+		JScrollPane pane = new JScrollPane(t);
+		pane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		pane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		pane.setPreferredSize(new Dimension(300, 200));
+		
+		dayView.add(pane, BorderLayout.CENTER);
 		frame.validate();
 	}
 
-	
-	
-
-
-
-
-	
-	/**
-	 * exits the running program.
-	 * saves all the events scheduled in a text file called "events.txt" before closing 
-	 * saves events in the order of starting date and starting time. 
-	 * @throws FileNotFoundException 
-	 */
-	public void quit() 
-	{
-		
-	}
 	
 	/**
 	 * changes the font size of the passed JTextArea object
@@ -414,16 +427,6 @@ public class PlannerView implements ActionListener{
 		j.setFont(biggerF);
 	}
 
-
-
-
-
-	@Override
-	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-	
 
 }
 
