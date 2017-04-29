@@ -34,10 +34,6 @@ public class PlannerView{
 	{
 		frame = new JFrame();
 	}
-	public void attach(PlannerModel m)
-	{
-		model = m;
-	}
 	public void start()
 	{
 		monthPanel();
@@ -54,8 +50,10 @@ public class PlannerView{
 		frame.pack();
 		frame.setVisible(true);
 	}
-	
-
+	public void attach(PlannerModel m)
+	{
+		model = m;
+	}
 	/**
 	 * 
 	 */
@@ -90,18 +88,6 @@ public class PlannerView{
 	}
 
 	/**
-	 * a different day has been selected
-	 * change the day view to reflect that day's events
-	 */
-	public void update()
-	{
-		updateMonthView();
-		updateDayView();
-		updateHeader();
-		frame.validate();
-	}
-	
-	/**
 	 * 
 	 */
 	public void updateMonthView()
@@ -114,8 +100,8 @@ public class PlannerView{
 		// fill in first blank spaces of calendar
 		for(int i = 0; i < model.firstDayOfMonth - 1; i++, offset++)
 			blankButton(days[i]);
-
-
+	
+	
 		// add in numbered days
 		offset--;
 		for(int i = 1; i < model.lengthOfMonth + 1; i++)
@@ -127,7 +113,7 @@ public class PlannerView{
 			// if it's the currently selected day, outline the box
 			// (selected day defaults to current day ON LAUNCH)
 			if(model.currentDay(i)) invertButton((days[i + offset]));
-
+	
 			
 			// if day is current actual date, increase the font size
 			if(model.selectedDay(i))
@@ -135,14 +121,14 @@ public class PlannerView{
 				(days[i + offset]).setBackground(Color.CYAN);
 				(days[i + offset]).setBorderPainted(true);
 			}
-
+	
 			// if it's an event day (and not currently selected), change background color
 			for( Event e : eventDays)
 			{
 				if(e.day == i && !model.selectedDay(i)) 
 					(days[i + offset]).setBackground(Color.GRAY);
 			}
-
+	
 			// finally add the text to the button, and add to monthView panel
 			(days[i + offset]).setText(Integer.toString(i));
 			
@@ -153,63 +139,8 @@ public class PlannerView{
 		// add in remaining days
 		for(int i = 0; i < 42 - model.lengthOfMonth - model.firstDayOfMonth + 1; i++)
 			blankButton(days[i + offset + 1]);
-
+	
 	}
-
-	/**
-	 * 
-	 */
-	public void updateDayView()
-	{
-		// initializations
-		ArrayList<Event> events = model.getEventsForSelectedDay();
-		
-		// here is the top banner, with current day of week + #month /#day
-		// add the day and number sub-header
-		dayListHeader.setText(model.getDay() + " " + (model.sMonth + 1) + "/" + model.sDay);
-		dayListHeader.setHorizontalAlignment(SwingConstants.CENTER);
-		
-		int rowHeight = dayList.getRowHeight();
-		for(int i = 0; i < 24; i++)
-		{
-			// blank the fields to erase existing data
-			dayList.setValueAt("", i, 1);
-			dayList.setValueAt("", i, 2);
-			dayList.setValueAt("", i, 3);
-
-			// go through the events, appending their values to the existing blanks (if they occur on said hour)
-			// if there are multiple, keep track of how many, increase that row's height to reflect this.
-			int numEvents = 0;
-			String title = "<html>", sTime = "<html>", eTime = "<html>";
-			for(Event e : events)
-			{
-				int eventStart = Integer.valueOf(e.startTime.substring(0, 2));
-				if(eventStart == i)
-				{
-					numEvents++;
-					dayList.setRowHeight(i, numEvents * rowHeight);
-					
-					title += e.title + "<br>";
-					sTime += e.startTime + "<br>";
-					eTime += e.endTime + "<br>";
-				}
-			}	
-			title += "</html>";
-			sTime += "</html>";
-			eTime += "</html>";
-			
-			dayList.setValueAt(title, i, 1);
-			dayList.setValueAt(sTime, i, 2);
-			dayList.setValueAt(eTime, i, 3);
-			
-			title = ""; sTime = ""; eTime = "";
-
-		}
-	}
-
-
-
-
 	/**
 	 * makes the look of the 'body' instance variable into the day view
 	 * (day view 'look' is described below)
@@ -251,54 +182,56 @@ public class PlannerView{
 		
 		updateDayView();
 	}
-	
 	/**
-	 * creates the 'look' of the create-new-event panel, paints it over the previous 'header' panel.
+	 * 
 	 */
-	public void createPanel()
+	public void updateDayView()
 	{
-		createView = new JPanel();
-		// clear out the existing display, replace it with the create panel
-		createView.setBackground(Color.WHITE);
-		createView.setLayout(new GridLayout(1, 5));
-		createView.setPreferredSize(new Dimension(1200, 50));
+		// initializations
+		ArrayList<Event> events = model.getEventsForSelectedDay();
 		
-		// the jtextfield
-		JTextField title = new JTextField("Untitled Event");
-		changeFontSize(title, 10);
-		title.setForeground(Color.GRAY);
-
+		// here is the top banner, with current day of week + #month /#day
+		// add the day and number sub-header
+		dayListHeader.setText(model.getDay() + " " + (model.sMonth + 1) + "/" + model.sDay);
+		dayListHeader.setHorizontalAlignment(SwingConstants.CENTER);
 		
-		// the date field
-		JButton date;
-		date = new JButton(model.getSelectedDate());
-		changeFontSize(date, 10);
-		formatButton(date);
-
-		
-		// the start and end fields
-		JTextField start, end;
-		start = new JTextField("00:00");
-		end = new JTextField("00:00");
-		changeFontSize(start, 10);
-		changeFontSize(end, 10);
-		
-		
-		// the save button
-		JButton save = new JButton("SAVE");
-		formatButton(save);
-
-		// finally add in all the pieces
-		createView.add(title);
-		createView.add(date);
-		createView.add(start);
-		createView.add(end);
-		createView.add(save);
+		int rowHeight = dayList.getRowHeight();
+		for(int i = 0; i < 24; i++)
+		{
+			// blank the fields to erase existing data
+			dayList.setValueAt("", i, 1);
+			dayList.setValueAt("", i, 2);
+			dayList.setValueAt("", i, 3);
+	
+			// go through the events, appending their values to the existing blanks (if they occur on said hour)
+			// if there are multiple, keep track of how many, increase that row's height to reflect this.
+			int numEvents = 0;
+			String title = "<html>", sTime = "<html>", eTime = "<html>";
+			for(Event e : events)
+			{
+				int eventStart = Integer.valueOf(e.startTime.substring(0, 2));
+				if(eventStart == i)
+				{
+					numEvents++;
+					dayList.setRowHeight(i, numEvents * rowHeight);
+					
+					title += e.title + "<br>";
+					sTime += e.startTime + "<br>";
+					eTime += e.endTime + "<br>";
+				}
+			}	
+			title += "</html>";
+			sTime += "</html>";
+			eTime += "</html>";
+			
+			dayList.setValueAt(title, i, 1);
+			dayList.setValueAt(sTime, i, 2);
+			dayList.setValueAt(eTime, i, 3);
+			
+			title = ""; sTime = ""; eTime = "";
+	
+		}
 	}
-	
-	
-
-	
 	/**
 	 * makes the look of the 'header' instance variable into a banner
 	 * banner includes the current year and month
@@ -342,7 +275,6 @@ public class PlannerView{
 		
 		updateHeader();
 	}
-	
 	/**
 	 * 
 	 */
@@ -353,30 +285,49 @@ public class PlannerView{
 		words.setFocusable(false);
 		words.setText(model.getMonth() + " " + model.getYear());
 	}
-	
-	
-	private void formatButton(JButton b)
+	/**
+	 * creates the 'look' of the create-new-event panel, paints it over the previous 'header' panel.
+	 */
+	public void createPanel()
 	{
-		b.setEnabled(true);
-		b.setBorderPainted(true);
-		b.setBackground(Color.WHITE);
-		b.setFocusable(false);
-	}
-	private void blankButton(JButton b)
-	{
-		b.setEnabled(false);
-		b.setFocusable(false);
-		b.setText("");
-		b.setBorderPainted(false);
-		b.setBackground(Color.LIGHT_GRAY);
-	}
-	private void invertButton(JComponent j)
-	{
-		j.setBackground(Color.BLACK);
-		j.setForeground(Color.WHITE);
-	}
+		createView = new JPanel();
+		// clear out the existing display, replace it with the create panel
+		createView.setBackground(Color.WHITE);
+		createView.setLayout(new GridLayout(1, 5));
+		createView.setPreferredSize(new Dimension(1200, 50));
+		
+		// the jtextfield
+		JTextField title = new JTextField("Untitled Event");
+		changeFontSize(title, 10);
+		title.setForeground(Color.GRAY);
 	
+		
+		// the date field
+		JButton date;
+		date = new JButton(model.getSelectedDate());
+		changeFontSize(date, 10);
+		formatButton(date);
 	
+		
+		// the start and end fields
+		JTextField start, end;
+		start = new JTextField("00:00");
+		end = new JTextField("00:00");
+		changeFontSize(start, 10);
+		changeFontSize(end, 10);
+		
+		
+		// the save button
+		JButton save = new JButton("SAVE");
+		formatButton(save);
+	
+		// finally add in all the pieces
+		createView.add(title);
+		createView.add(date);
+		createView.add(start);
+		createView.add(end);
+		createView.add(save);
+	}
 	/**
 	 * only called by dayPanel when an hour w/ events is selected on view
 	 * allows user to clear events starting on that hour (and scheduled for currently selected day)
@@ -385,26 +336,49 @@ public class PlannerView{
 	private void deletePanel()
 	{
 		deleteView = new JPanel();
+		deleteView.setBackground(Color.WHITE);
 		
 		JButton delete = new JButton("Delete Events For Selected Hour?");
+		changeFontSize(delete, 10);
 		formatButton(delete);
-		deleteView.add(delete, BorderLayout.CENTER);
+		deleteView.add(delete, BorderLayout.NORTH);
 		
 	}
-
-	
-	/**
-	 * changes the font size of the passed JTextArea object
-	 * @param j the JTextArea object
-	 * @param ammount will be added to the font size, negative values will decrese font size
-	 */
-	public void changeFontSize(JComponent j, int ammount)
+	public void createView()
 	{
-		Font f = j.getFont();
-		Font biggerF = new Font(f.getFontName(), f.getStyle(), f.getSize() + ammount);
-		j.setFont(biggerF);
+		frame.remove(header);
+		frame.add(createView, BorderLayout.NORTH);
+		update();
 	}
 	
+	public void deleteView()
+	{
+		frame.remove(header);
+		frame.add(deleteView, BorderLayout.NORTH);
+		update();
+	}
+	
+	public void standardView()
+	{
+		frame.remove(createView);
+		frame.remove(deleteView);
+
+		frame.add(header, BorderLayout.NORTH);
+		update();
+	}
+	
+	/**
+	 * a different day has been selected
+	 * change the day view to reflect that day's events
+	 */
+	public void update()
+	{
+		updateMonthView();
+		updateDayView();
+		updateHeader();
+		frame.validate();
+		frame.repaint();
+	}
 	public JPanel getMonthView() {
 		return monthView;
 	}
@@ -425,6 +399,40 @@ public class PlannerView{
 	}
 	public int getDeleteHour() {
 		return deleteHour;
+	}
+	public JTable getDayList() {
+		return dayList;
+	}
+	/**
+	 * changes the font size of the passed JTextArea object
+	 * @param j the JTextArea object
+	 * @param ammount will be added to the font size, negative values will decrese font size
+	 */
+	public void changeFontSize(JComponent j, int ammount)
+	{
+		Font f = j.getFont();
+		Font biggerF = new Font(f.getFontName(), f.getStyle(), f.getSize() + ammount);
+		j.setFont(biggerF);
+	}
+	private void formatButton(JButton b)
+	{
+		b.setEnabled(true);
+		b.setBorderPainted(true);
+		b.setBackground(Color.WHITE);
+		b.setFocusable(false);
+	}
+	private void blankButton(JButton b)
+	{
+		b.setEnabled(false);
+		b.setFocusable(false);
+		b.setText("");
+		b.setBorderPainted(false);
+		b.setBackground(Color.LIGHT_GRAY);
+	}
+	private void invertButton(JComponent j)
+	{
+		j.setBackground(Color.BLACK);
+		j.setForeground(Color.WHITE);
 	}
 	
 

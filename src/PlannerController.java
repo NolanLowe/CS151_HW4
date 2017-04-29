@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 
 /**
  * 
@@ -30,6 +32,7 @@ public class PlannerController{
 		attachMonthListeners();
 		attachHeaderListeners();
 		attachCreateListeners();
+		attachDeleteListeners();
 		
 
 	}
@@ -51,7 +54,7 @@ public class PlannerController{
 					int day = Integer.valueOf(b.getText());
 					model.setDate(-1, -1, day);
 					System.out.println("Button: " + day);
-					view.update();
+					view.standardView();
 				}
 			});
 		}
@@ -111,7 +114,7 @@ public class PlannerController{
 		create.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				view.update();
+				view.createView();
 			}
 		});
 		
@@ -127,17 +130,29 @@ public class PlannerController{
 		
 	}
 
-	
-	public void attachDeleteListener(int sHour)
+	/**
+	 * 
+	 */
+	public void attachDeleteListeners()
 	{
 		JButton delete = (JButton) view.getDeleteView().getComponent(0);
 		delete.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				
 				model.delete(view.getDeleteHour());
-				view.update();
+				view.standardView();
 			}
+		});
+		
+		
+		JTable list = view.getDayList();
+		list.addMouseListener(new MouseAdapter() {
+			@Override
+		    public void mouseClicked(java.awt.event.MouseEvent e) {
+				int row = list.rowAtPoint(e.getPoint());
+				view.setDeleteHour(row);
+				view.deleteView();
+		    }
 		});
 	}
 	
@@ -184,7 +199,8 @@ public class PlannerController{
 					end.setText("00:00");
 				}
 				// otherwise the add was successful, update the view to reflect change
-				else view.update();
+				else view.standardView();
+				
 			}
 		});
 
