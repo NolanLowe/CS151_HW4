@@ -1,28 +1,21 @@
-/**
- * the GUI of the program. t
- * @author Nolan
- *
- */
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.io.*;
+import java.awt.event.*;
 import java.util.*;
 
 import javax.swing.*;
+import javax.swing.event.*;
+
 
 /**
  * Planner class 
  * handles GUI and input/output
+ * A PORTION OF CODE REUSED FROM MY HW2 SUBMISSION
  * @author nolan
  * last updated: 3/10/2017
  */
 public class PlannerView{
 	private JFrame frame;
 	private JPanel monthView, header, dayView;
-	
 	private PlannerModel model;
 
 	/**
@@ -108,7 +101,6 @@ public class PlannerView{
 			if(model.currentDay(i))
 			{
 				invertButton(numDay);
-				changeFontSize(numDay, 5);
 			}
 			
 			// if day is current actual date, increase the font size
@@ -119,10 +111,10 @@ public class PlannerView{
 			}
 				
 				
-			// if it's an event day, change background color
+			// if it's an event day (and not currently selected), change background color
 			for( Event e : eventDays)
 			{
-				if(e.day == i)
+				if(e.day == i && !model.selectedDay(i))
 				{
 					numDay.setBackground(Color.GRAY);
 				}
@@ -142,7 +134,7 @@ public class PlannerView{
 	
 	/**
 	 * actionlistener class used by the buttons on the calendar monthly view
-	 * each day gets one, changes the selected day
+	 * each day gets one; when pressed changes selected day of the model
 	 * @param day
 	 * @return
 	 */
@@ -160,7 +152,7 @@ public class PlannerView{
 
 
 	/**
-	 * functionally a brute force 'repaint' -- used after View pushes changes to model, to reflect the new data
+	 * functionally a brute force 'repaint' -- used after View pushes changes to model to then reflect the new data
 	 */
 	public void update()
 	{
@@ -189,7 +181,7 @@ public class PlannerView{
 		JTextField title = new JTextField("Untitled Event");
 		changeFontSize(title, 10);
 		title.setForeground(Color.GRAY);
-		title.addMouseListener(new MouseListener()
+		title.addMouseListener(new MouseAdapter()
 		{
 			@Override
 			public void mouseReleased(MouseEvent e){}
@@ -237,8 +229,16 @@ public class PlannerView{
 				String t = title.getText();
 				String st = start.getText();
 				String en = end.getText();
-				model.addEvent(t, st, en);
-				update();	
+				// attempt to add the event, if was overlap prompt the user to change time
+				if(! model.addEvent(t, st, en))	
+				{
+					title.setText("ERROR: overlap");
+					start.setText("00:00");
+					end.setText("00:00");
+				}
+				// otherwise the add was successful, update the view to reflect change
+				else update();
+
 			}
 		});
 
@@ -373,15 +373,16 @@ public class PlannerView{
 		
 		// construct the table and set some default behaviors
 		JTable t = new JTable(content, names);
-		t.setEnabled(false);
+		//t.setEnabled(false);
 		
 		int rowHeight = t.getRowHeight();
 		for(int i = 0; i < 24; i++)
 		{
 			// set the value for the 'hour' collumn
-			content[i][0] = Integer.toString(i);
+			content[i][0] = (i < 10 ? "0" : "") + Integer.toString(i);
+			content[i][0] += (i < 12 ? "AM" : "PM");
 			
-			// initalize the other values to start of HTML tag 
+			// initalize the other values to start of HTML tag used to properly format the table
 			for(int y = 1; y < 4; y++) content[i][y] = "<html>";
 
 			// go through the events, appending their values to the existing blanks (if they occur on said hour)
@@ -404,6 +405,19 @@ public class PlannerView{
 			
 		}
 		
+		// add the proper and logic to the table to allow deletion of events
+		t.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				String s = (String) t.getValueAt(t.getSelectedRow(), 0);
+				int sHour = Integer.valueOf(s.substring(0, 2));
+				System.out.println(s);
+				deletePanel(sHour);
+				
+			}
+		});
+		
+		
 		// dayview panel is now complete, format it for the scrollbar and add to the frame
 		JScrollPane pane = new JScrollPane(t);
 		pane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -412,6 +426,31 @@ public class PlannerView{
 		
 		dayView.add(pane, BorderLayout.CENTER);
 		frame.validate();
+	}
+	
+	
+	/**
+	 * only called by dayPanel when an hour w/ events is selected on view
+	 * allows user to clear events starting on that hour (and scheduled for currently selected day)
+	 * @param sHour the starting hour for events to be deleted
+	 */
+	private void deletePanel(int sHour)
+	{
+		header.removeAll();
+		JButton delete = new JButton("Delete Events For Selected Hour?");
+		formatButton(delete);
+		
+		delete.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				model.delete(sHour);
+				update();
+			}
+		});
+		
+		header.add(delete);
+		frame.validate();
+		
 	}
 
 	

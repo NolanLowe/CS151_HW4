@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * underlying data structure
  * keeps track of events, current date, and extent of currently selected month (first day, last day, day of week)
- * (SOME CODE REUSED FROM MY HW2 SUBMISSION)
+ * A PORTION OF CODE REUSED FROM MY HW2 SUBMISSION
  * @author Nolan
  *
  */
@@ -30,7 +30,7 @@ public class PlannerModel implements Serializable {
 	
 
 	/**
-	 * 
+	 * Constructs a new planner model object. attempts to load events from a file upon construction
 	 */
 	public PlannerModel()
 	{
@@ -43,8 +43,9 @@ public class PlannerModel implements Serializable {
 	
 	/**
 	 * checks if the passed day matches the current ACTUAL date
-	 * assumes month and year are already a match
-	 * @param day
+	 * uses currently selected month / year values from 'selected date'
+	 * the current date is set on launch and never modified subsequently
+	 * @param day the integer value for the current day, starts at 1 for the 1st, not 0
 	 * @return true if a match, false otherwise
 	 */
 	public boolean currentDay(int day)
@@ -57,9 +58,10 @@ public class PlannerModel implements Serializable {
 		return false;
 	}
 	/**
-	 * checks if the passed day matches the current selected date (selected != actual)
+	 * checks if the passed day matches the current selected date
+	 * EX: 
 	 * @param day
-	 * @return
+	 * @return true if the passed day is the selected day of month, false otherwise
 	 */
 	public boolean selectedDay(int day)
 	{
@@ -84,13 +86,12 @@ public class PlannerModel implements Serializable {
 		try {	
 			ObjectInputStream in = new ObjectInputStream(new FileInputStream("events.data"));
 			events = (ArrayList<Event>) in.readObject();
+			in.close();
 		} 
 		catch (Exception e){
 		// no existing file found, no events loaded	
 			e.printStackTrace();
 			events = new ArrayList<Event>();
-			System.out.println("Exited");
-			saveEvents();
 		}
 	}
 	
@@ -103,6 +104,7 @@ public class PlannerModel implements Serializable {
 			File f = new File("events.data");
 			ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(f));
 			out.writeObject(events);
+			out.close();
 		} 
 		catch (FileNotFoundException e) {
 
@@ -137,8 +139,8 @@ public class PlannerModel implements Serializable {
 	}
 	
 	/**
-	 * changes the date the selectedDayendar object is currently set to.
-	 * increments year, month and day by provided amounts, then updates its own instance variables to reflect the change
+	 * INCREMENTS the currently selected date by the provided integer values, then updates selected day values to reflect change 
+	 * EX: (-1, -1, 1) will change 04/29/17 to 04/30/19
 	 * @param year amnt. to add to year field
 	 * @param month amnt to add to month field
 	 * @param day amnt to add to day field
@@ -148,14 +150,12 @@ public class PlannerModel implements Serializable {
 		selectedDay.add(Calendar.DAY_OF_MONTH, day);
 		selectedDay.add(Calendar.MONTH, month);
 		selectedDay.add(Calendar.YEAR, year);
-		
 		update();
-
 	}
 	
 
 	/**
-	 * sets the current date to the params provided. a value of -1 will leave that field with its existing value
+	 * SETS the current date to the params provided. a value of -1 will leave that field with its existing value
 	 * @param year 
 	 * @param month
 	 * @param day 
@@ -192,6 +192,11 @@ public class PlannerModel implements Serializable {
 	}
 	
 
+	/**
+	 * @return an array containing all the events occuring on the currently stored selected MONTH
+	 * used to draw the monthly calendar view
+	 * the selected date is changed when a user clicks on any of the days of the month view, or the back/forward button.
+	 */
 	public ArrayList<Event> getEventsForSelectedMonth()
 	{
 		sortEvents();
@@ -206,6 +211,11 @@ public class PlannerModel implements Serializable {
 		return forMonth;
 	}
 	
+	/**
+	 * @return an array containing all the events occuring on the currently stored selected DAY
+	 * used to draw the daily calendar view
+	 * the selected date is changed when a user clicks on any of the days of the month view, or the back/forward button.
+	 */
 	public ArrayList<Event> getEventsForSelectedDay()
 	{
 		sortEvents();
@@ -220,14 +230,40 @@ public class PlannerModel implements Serializable {
 		return forDay;
 	}
 	
-	
+	/**
+	 * @return the String values for the currently selected month and day, in format " MONTH/DAYOFMONTH"
+	 * EX: if selected date is May 20th, will return 5/20 in a string.
+	 */
 	public String getSelectedDate()
 	{
 		return selectedDay.get(Calendar.MONTH) + "/" + selectedDay.get(Calendar.DAY_OF_MONTH) + "/" + getYear();
 	}
 	
+	/**
+	 * deletes events occurring on selected date (selected date is stored and monitored by the model) 
+	 * @param sTime the starting time for events in single-integer-hour format( 1AM, 2PM, etc...)
+	 */
+	public void delete(int sTime)
+	{
+		// convert sTime to minutes
+		sTime *= 60;
+		
+		// check events on selected day for matches
+		ArrayList<Event> eventsForDay = getEventsForSelectedDay();
+		for(Event e : eventsForDay)
+		{
+			if(e.getStartTimeInMinutes() >= sTime && e.getStartTimeInMinutes() < sTime + 60) this.events.remove(e);
+		}
+	}
 	
 	
+	/**
+	 * attempt to add a new event to the planner model. If there is overlap with an existing event, returns false.
+	 * @param title
+	 * @param startTime
+	 * @param endTime
+	 * @return false if overlap, true otherwise
+	 */
 	public boolean addEvent(String title, String startTime, String endTime)
 	{
 		// properly format the date to include leading zeros if necessary.
@@ -254,15 +290,13 @@ public class PlannerModel implements Serializable {
 		// there was no overlap, go ahead and add new event to list
 		events.add(e);
 		sortEvents();
-		
-		
+
 		return true;
 	}
 	
 	/**
 	 * sorts all the events currently loaded into the selectedDayendar into sequential order
-	 * does not worry about ending times when sorting, only starting times. 
-	 * (REUSED FROM HW2)
+	 * (events occurring on same day are sorted by starting time as well)
 	 */
 	public void sortEvents()
 	{
@@ -286,10 +320,7 @@ public class PlannerModel implements Serializable {
 	        			// days are equal, check the times
 	        			else if (a.day == b.day)
 	        			{
-	        				int aStart = Integer.valueOf(a.startTime.substring(0, 2) + a.startTime.substring(3, 5));
-	        				int bStart = Integer.valueOf(b.startTime.substring(0, 2) + b.startTime.substring(3, 5));
-	        				
-	        				if(aStart < bStart)
+	        				if(a.getStartTimeInMinutes() < b.getStartTimeInMinutes())
 	        					return -1;
 	        			}		
 	        		}

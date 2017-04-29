@@ -1,24 +1,21 @@
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+/**
+ * 
+ * @author nolan
+ *
+ */
+public class PlannerController{
+	PlannerModel model;
+	PlannerView view;
 
-
-public class PlannerController implements ActionListener {
-
-	public static void main(String[] arg)
+	public PlannerController()
 	{
-		PlannerModel model = new PlannerModel();
+		model = new PlannerModel();
 		model.tryLoad();
 		
-		PlannerView view = new PlannerView();
+		view = new PlannerView();
 		view.attach(model);
 		view.start();
 		
 	}
-// creates the proper views for User, handles IO, coordinating the view and updating the model 
 
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
 }

@@ -37,7 +37,21 @@ public class Event implements Serializable{
 		year = Integer.valueOf( date.substring(4, 8));
 	}
 	
+	/**
+	 * @return the start time of the event converted into minutes 
+	 */
+	public int getStartTimeInMinutes()
+	{
+		return Integer.valueOf(startTime.substring(0, 2)) * 60  + Integer.valueOf(startTime.substring(3, 5));
+	}
 	
+	/**
+	 * @return the end time of the event converted into minutes
+	 */
+	public int getEndTimeInMinutes()
+	{
+		return Integer.valueOf(endTime.substring(0, 2)) * 60 + Integer.valueOf(endTime.substring(3, 5));
+	}
 
 	/**
 	 * @return a string containing the contents of the event in format:
@@ -60,22 +74,14 @@ public class Event implements Serializable{
 		
 		// time slot overlap; check the ranges
 		// convert the start and end values into minutes for easier comparison
-		int aStart = Integer.valueOf(startTime.substring(0, 2)) * 60 
-				   + Integer.valueOf(startTime.substring(3, 5));
-		
-		int bStart = Integer.valueOf(e.startTime.substring(0, 2)) * 60
-				   + Integer.valueOf(e.startTime.substring(3, 5));
-		
-		int aFin = Integer.valueOf(endTime.substring(0, 2)) * 60
-				 + Integer.valueOf(endTime.substring(3, 5));
-		int bFin = Integer.valueOf(e.endTime.substring(0, 2)) * 60
-				 + Integer.valueOf(e.endTime.substring(3, 5));
+		int aStart = getStartTimeInMinutes();
+		int bStart = e.getStartTimeInMinutes();
+		int aFin = getEndTimeInMinutes();
+		int bFin = e.getEndTimeInMinutes();
 		
 		if(aStart >= bStart && aStart < bFin) return true;
 		if(bStart >= aStart && bStart < aFin) return true;
-		
-		// clean
-		System.out.println("overlap detected");
+
 		return false;
 	}
 
