@@ -3,9 +3,9 @@ import java.util.*;
 
 
 /**
- * underlying data structure
- * keeps track of events, current date, and extent of currently selected month (first day, last day, day of week)
- * A PORTION OF CODE REUSED FROM MY HW2 SUBMISSION
+ * The Model for the planner. Keeps track of the size and extend of months, user's saved events. 
+ * Doesn't "know" about any of the View or Model's functionality. Can be used with either of them. 
+ * [A PORTION OF CODE WAS REUSED FROM MY HW2 SUBMISSION]
  * @author Nolan
  *
  */
@@ -21,11 +21,15 @@ public class PlannerModel implements Serializable {
 	// used to properly draw the current month in the View
 	public int lengthOfMonth, firstDayOfMonth;
 
-	// one used to track user, other used to remember actual current date
-	public GregorianCalendar selectedDay, currentDay;
+	// one used to track user's position in the calendar, other used to remember the current day (is never changed after)
+	public GregorianCalendar selectedDay;
+	public final GregorianCalendar currentDay;
 	
 	// the events data structure
 	private ArrayList<Event> events;
+	
+	private ArrayList<PlannerView> views;
+	
 	
 	
 
@@ -36,49 +40,32 @@ public class PlannerModel implements Serializable {
 	{
 		selectedDay = new GregorianCalendar();
 		currentDay = new GregorianCalendar();
+		views = new ArrayList<PlannerView>();
 		update();
 		
 		tryLoad();
 	}
 	
 	/**
-	 * checks if the passed day matches the current ACTUAL date
-	 * uses currently selected month / year values from 'selected date'
-	 * the current date is set on launch and never modified subsequently
-	 * @param day the integer value for the current day, starts at 1 for the 1st, not 0
-	 * @return true if a match, false otherwise
+	 * attaches the provided planner view object to the model. 
+	 * the view will then be notified when any changes that occur to the model
+	 * @param v
 	 */
-	public boolean currentDay(int day)
+	public void addListener(PlannerView v)
 	{
-		if(day == currentDay.get(Calendar.DAY_OF_MONTH))
-			if(sMonth == currentDay.get(Calendar.MONTH))
-				if(sYear == currentDay.get(Calendar.YEAR))
-					return true;
-				
-		return false;
+		views.add(v);
 	}
+	
 	/**
-	 * checks if the passed day matches the current selected date
-	 * EX: 
-	 * @param day
-	 * @return true if the passed day is the selected day of month, false otherwise
+	 * notifies all the currently attached listeners
 	 */
-	public boolean selectedDay(int day)
+	private void notifyListeners()
 	{
-		if(day == selectedDay.get(Calendar.DAY_OF_MONTH))	
-		{
-			if(sMonth == selectedDay.get(Calendar.MONTH))
-			{
-				if(sYear == selectedDay.get(Calendar.YEAR))
-					return true;
-			}
-		}		
-		return false;
+		for(PlannerView v : views) v.update();
 	}
 	
 	/**
 	 * tries to load an events arraylist from the bin file selectedDayled data.txt
-	 * if one does not exist, creates one, leaving it blank
 	 */
 	@SuppressWarnings("unchecked")
 	public void tryLoad()
@@ -90,7 +77,6 @@ public class PlannerModel implements Serializable {
 		} 
 		catch (Exception e){
 		// no existing file found, no events loaded	
-			e.printStackTrace();
 			events = new ArrayList<Event>();
 		}
 	}
@@ -136,8 +122,109 @@ public class PlannerModel implements Serializable {
 		temp.add(Calendar.MONTH, 1);
 		temp.add(Calendar.DAY_OF_MONTH, -1);
 		this.lengthOfMonth = temp.get(Calendar.DAY_OF_MONTH);
+		
+		notifyListeners();
 	}
 	
+	/**
+	 * attempt to add a new event to the planner model. If there is overlap with an existing event, returns false.
+	 * @param title
+	 * @param startTime
+	 * @param endTime
+	 * @return false if overlap, true otherwise
+	 */
+	public boolean addEvent(String title, String startTime, String endTime)
+	{
+		// properly format the date to include leading zeros if necessary.
+		String d = "";
+		if(selectedDay.get(Calendar.MONTH) < 10) d += "0";
+		d += selectedDay.get(Calendar.MONTH);
+		
+		if(selectedDay.get(Calendar.DAY_OF_MONTH) < 10) d += "0";
+		d += selectedDay.get(Calendar.DAY_OF_MONTH);
+	
+		d += selectedDay.get(Calendar.YEAR);
+		
+		// make the new event with the now formatted data
+		Event e = new Event(title, d, startTime, endTime);
+		
+		
+		// now make sure that your newly formatted date doesn't occur in another event
+		ArrayList<Event> today = getEventsForSelectedDay();
+		for(Event event : today)
+		{
+			if(event.overlap(e)) return false;
+		}
+		
+		// there was no overlap, go ahead and add new event to list
+		events.add(e);
+		sortEvents();
+	
+		notifyListeners();
+		return true;
+	}
+
+	/**
+	 * deletes events occurring on selected date (selected date is stored and monitored by the model) 
+	 * @param sTime the starting time for events in single-integer-hour format( 1AM, 2PM, etc...)
+	 */
+	public void delete(int sTime)
+	{
+		// convert sTime to minutes
+		sTime *= 60;
+		
+		// check events on selected day for matches
+		ArrayList<Event> eventsForDay = getEventsForSelectedDay();
+		for(Event e : eventsForDay)
+		{
+			if(e.getStartTimeInMinutes() >= sTime && e.getStartTimeInMinutes() < sTime + 60) this.events.remove(e);
+		}
+		notifyListeners();
+	}
+
+	/**
+	 * sorts all the events currently loaded into the selectedDayendar into sequential order
+	 * (events occurring on same day are sorted by starting time as well)
+	 */
+	public void sortEvents()
+	{
+		Collections.sort(events, new Comparator<Event>() 
+		{
+	        @Override public int compare(Event a, Event b) 
+	        {  	
+	        	// is a year before b year?
+	        	if(a.year < b.year)
+	        		return -1;
+	        	// are years equal? check months
+	        	else if(a.year == b.year )
+	        	{
+	        		if(a.month < b.month)
+	        			return -1;
+	        		else if(a.month == b.month)
+	        		{
+	        			// months are equal? check days
+	        			if(a.day < b.day)
+	        				return -1;
+	        			// days are equal, check the times
+	        			else if (a.day == b.day)
+	        			{
+	        				if(a.getStartTimeInMinutes() < b.getStartTimeInMinutes())
+	        					return -1;
+	        			}		
+	        		}
+	        	}
+	        	// b is before a
+	        	return 1;	
+	        } 
+		});
+	}
+	
+	
+	
+	// -------------------------------------------------------------------------------- //
+	//                 GETTERS AND SETTERS                                           //
+	// --------------------------------------------------------------------------------- //
+
 	/**
 	 * INCREMENTS the currently selected date by the provided integer values, then updates selected day values to reflect change 
 	 * EX: (-1, -1, 1) will change 04/29/17 to 04/30/19
@@ -152,7 +239,6 @@ public class PlannerModel implements Serializable {
 		selectedDay.add(Calendar.YEAR, year);
 		update();
 	}
-	
 
 	/**
 	 * SETS the current date to the params provided. a value of -1 will leave that field with its existing value
@@ -165,10 +251,45 @@ public class PlannerModel implements Serializable {
 		if(day != -1) selectedDay.set(Calendar.DAY_OF_MONTH, day);
 		if(month != -1)selectedDay.set(Calendar.MONTH, month);
 		if(year != -1)selectedDay.set(Calendar.YEAR, year);
-		
 		update();
 	}
 	
+	/**
+	 * checks if the passed day matches the current selected date
+	 * EX: 
+	 * @param day
+	 * @return true if the passed day is the selected day of month, false otherwise
+	 */
+	public boolean selectedDay(int day)
+	{
+		if(day == selectedDay.get(Calendar.DAY_OF_MONTH))	
+		{
+			if(sMonth == selectedDay.get(Calendar.MONTH))
+			{
+				if(sYear == selectedDay.get(Calendar.YEAR))
+					return true;
+			}
+		}		
+		return false;
+	}
+
+	/**
+	 * checks if the passed day matches the current ACTUAL date
+	 * uses currently selected month / year values from 'selected date'
+	 * the current date is set on launch and never modified subsequently
+	 * @param day the integer value for the current day, starts at 1 for the 1st, not 0
+	 * @return true if a match, false otherwise
+	 */
+	public boolean currentDay(int day)
+	{
+		if(day == currentDay.get(Calendar.DAY_OF_MONTH))
+			if(sMonth == currentDay.get(Calendar.MONTH))
+				if(sYear == currentDay.get(Calendar.YEAR))
+					return true;
+				
+		return false;
+	}
+
 	/**
 	 * @return the selected day of the week for the date object in string format (monday, tuesday, etc...)
 	 */
@@ -237,98 +358,6 @@ public class PlannerModel implements Serializable {
 	public String getSelectedDate()
 	{
 		return selectedDay.get(Calendar.MONTH) + "/" + selectedDay.get(Calendar.DAY_OF_MONTH) + "/" + getYear();
-	}
-	
-	/**
-	 * deletes events occurring on selected date (selected date is stored and monitored by the model) 
-	 * @param sTime the starting time for events in single-integer-hour format( 1AM, 2PM, etc...)
-	 */
-	public void delete(int sTime)
-	{
-		// convert sTime to minutes
-		sTime *= 60;
-		
-		// check events on selected day for matches
-		ArrayList<Event> eventsForDay = getEventsForSelectedDay();
-		for(Event e : eventsForDay)
-		{
-			if(e.getStartTimeInMinutes() >= sTime && e.getStartTimeInMinutes() < sTime + 60) this.events.remove(e);
-		}
-	}
-	
-	
-	/**
-	 * attempt to add a new event to the planner model. If there is overlap with an existing event, returns false.
-	 * @param title
-	 * @param startTime
-	 * @param endTime
-	 * @return false if overlap, true otherwise
-	 */
-	public boolean addEvent(String title, String startTime, String endTime)
-	{
-		// properly format the date to include leading zeros if necessary.
-		String d = "";
-		if(selectedDay.get(Calendar.MONTH) < 10) d += "0";
-		d += selectedDay.get(Calendar.MONTH);
-		
-		if(selectedDay.get(Calendar.DAY_OF_MONTH) < 10) d += "0";
-		d += selectedDay.get(Calendar.DAY_OF_MONTH);
-
-		d += selectedDay.get(Calendar.YEAR);
-		
-		// make the new event with the now formatted data
-		Event e = new Event(title, d, startTime, endTime);
-		
-		
-		// now make sure that your newly formatted date doesn't occur in another event
-		ArrayList<Event> today = getEventsForSelectedDay();
-		for(Event event : today)
-		{
-			if(event.overlap(e)) return false;
-		}
-		
-		// there was no overlap, go ahead and add new event to list
-		events.add(e);
-		sortEvents();
-
-		return true;
-	}
-	
-	/**
-	 * sorts all the events currently loaded into the selectedDayendar into sequential order
-	 * (events occurring on same day are sorted by starting time as well)
-	 */
-	public void sortEvents()
-	{
-		Collections.sort(events, new Comparator<Event>() 
-		{
-	        @Override public int compare(Event a, Event b) 
-	        {  	
-	        	// is a year before b year?
-	        	if(a.year < b.year)
-	        		return -1;
-	        	// are years equal? check months
-	        	else if(a.year == b.year )
-	        	{
-	        		if(a.month < b.month)
-	        			return -1;
-	        		else if(a.month == b.month)
-	        		{
-	        			// months are equal? check days
-	        			if(a.day < b.day)
-	        				return -1;
-	        			// days are equal, check the times
-	        			else if (a.day == b.day)
-	        			{
-	        				if(a.getStartTimeInMinutes() < b.getStartTimeInMinutes())
-	        					return -1;
-	        			}		
-	        		}
-	        	}
-	        	// b is before a
-	        	return 1;	
-	        } 
-		});
 	}
 	
 	

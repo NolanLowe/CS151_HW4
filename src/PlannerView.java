@@ -1,17 +1,13 @@
 import java.awt.*;
-import java.awt.event.*;
 import java.util.*;
 
 import javax.swing.*;
-import javax.swing.event.*;
 
 
 /**
- * Planner class 
- * handles GUI and input/output
+ * The view for the Planner. Takes data from the Model and displays it, then updates according to the Controller's logic. 
  * A PORTION OF CODE REUSED FROM MY HW2 SUBMISSION
  * @author nolan
- * last updated: 3/10/2017
  */
 public class PlannerView{
 	private JFrame frame;
@@ -27,13 +23,16 @@ public class PlannerView{
 	/**
 	 * creates a new planner object
 	 * planner creates and starts default view (month view)
-	 * no events loaded
-	 * prompts user with main menu (uses console for all input, and SOME output)
+	 * attempts to load events from a serialized file called "events.data"
 	 */
 	public PlannerView()
 	{
 		frame = new JFrame();
 	}
+	
+	/**
+	 * loads up the data from the Model and displays it.
+	 */
 	public void start()
 	{
 		monthPanel();
@@ -50,14 +49,30 @@ public class PlannerView{
 		frame.pack();
 		frame.setVisible(true);
 	}
+	
+	/**
+	 * plugs in the supplied data model, also plugging the view into the model to be notifed upon changes
+	 * @param m
+	 */
 	public void attach(PlannerModel m)
 	{
 		model = m;
+		m.addListener(this);
 	}
+	
+
+	
+	
+	
+	// -------------------------------------------------------------------------------- //
+	//               METHODS THAT CREATE THE 'LOOK' AND DRAW FROM THE MODEL              //
+	// --------------------------------------------------------------------------------- //
+	
 	/**
-	 * 
+	 * initializes all the components used by the Month View
+	 * to then be decorated by updateMonthView
 	 */
-	public void monthPanel()
+	private void monthPanel()
 	{
 		monthView = new JPanel();
 		days = new JButton[42];
@@ -83,14 +98,13 @@ public class PlannerView{
 			days[i] = b;
 			
 		}
-		
 		updateMonthView();
 	}
 
 	/**
-	 * 
+	 * fills in the components of the month view JPanel
 	 */
-	public void updateMonthView()
+	private void updateMonthView()
 	{
 		// declarations
 		int offset = 0;
@@ -122,10 +136,10 @@ public class PlannerView{
 				(days[i + offset]).setBorderPainted(true);
 			}
 	
-			// if it's an event day (and not currently selected), change background color
+			// if it's an event day (and not the current day), change background color
 			for( Event e : eventDays)
 			{
-				if(e.day == i && !model.selectedDay(i)) 
+				if(e.day == i && !model.selectedDay(i) && !model.currentDay(i)) 
 					(days[i + offset]).setBackground(Color.GRAY);
 			}
 	
@@ -142,15 +156,10 @@ public class PlannerView{
 	
 	}
 	/**
-	 * makes the look of the 'body' instance variable into the day view
-	 * (day view 'look' is described below)
-	 * 
-	 * Tuesday, Feb 27, 2017 
-	 * 
-	 * Dr. Kim's office hour 9:15 - 10:15 
-	 * ... 
+	 * creates the components used by the DayView panel (has the list of events for selected day)
+	 * to then be filled out by updateDayView
 	 */
-	public void dayPanel()
+	private void dayPanel()
 	{
 		// init.
 		dayView = new JPanel();
@@ -183,9 +192,9 @@ public class PlannerView{
 		updateDayView();
 	}
 	/**
-	 * 
+	 * fills out the DayView panel with data from the model
 	 */
-	public void updateDayView()
+	private void updateDayView()
 	{
 		// initializations
 		ArrayList<Event> events = model.getEventsForSelectedDay();
@@ -233,10 +242,9 @@ public class PlannerView{
 		}
 	}
 	/**
-	 * makes the look of the 'header' instance variable into a banner
-	 * banner includes the current year and month
+	 * creates the components used by the header
 	 */
-	public void headerPanel()
+	private void headerPanel()
 	{
 		header = new JPanel();
 		
@@ -276,9 +284,9 @@ public class PlannerView{
 		updateHeader();
 	}
 	/**
-	 * 
+	 * updates the headerView to reflect the data in the model
 	 */
-	public void updateHeader()
+	private void updateHeader()
 	{
 		JLabel words = (JLabel) header.getComponent(0);
 		words.setBackground(Color.WHITE);
@@ -286,9 +294,9 @@ public class PlannerView{
 		words.setText(model.getMonth() + " " + model.getYear());
 	}
 	/**
-	 * creates the 'look' of the create-new-event panel, paints it over the previous 'header' panel.
+	 * creates the components used by the createPanel (the options panel on top of the planner)
 	 */
-	public void createPanel()
+	private void createPanel()
 	{
 		createView = new JPanel();
 		// clear out the existing display, replace it with the create panel
@@ -297,22 +305,23 @@ public class PlannerView{
 		createView.setPreferredSize(new Dimension(1200, 50));
 		
 		// the jtextfield
-		JTextField title = new JTextField("Untitled Event");
+		JTextField title = new JTextField();
 		changeFontSize(title, 10);
 		title.setForeground(Color.GRAY);
 	
 		
 		// the date field
 		JButton date;
-		date = new JButton(model.getSelectedDate());
+		date = new JButton();
 		changeFontSize(date, 10);
 		formatButton(date);
+		date.setEnabled(false);
 	
 		
 		// the start and end fields
 		JTextField start, end;
-		start = new JTextField("00:00");
-		end = new JTextField("00:00");
+		start = new JTextField();
+		end = new JTextField();
 		changeFontSize(start, 10);
 		changeFontSize(end, 10);
 		
@@ -327,11 +336,27 @@ public class PlannerView{
 		createView.add(start);
 		createView.add(end);
 		createView.add(save);
+		
+		updateCreateView();
+	}
+	
+	/**
+	 * fills out the createView panel with the proper default values
+	 */
+	private void updateCreateView()
+	{
+		JTextField text = (JTextField) createView.getComponent(0),
+				startTime = (JTextField) createView.getComponent(2), 
+				endTime = (JTextField) createView.getComponent(3);
+		JButton date = (JButton) createView.getComponent(1);
+		text.setText("Untitled Event");
+		startTime.setText("00:00");
+		endTime.setText("00:00");
+		date.setText(model.getSelectedDate());
+		
 	}
 	/**
-	 * only called by dayPanel when an hour w/ events is selected on view
-	 * allows user to clear events starting on that hour (and scheduled for currently selected day)
-	 * @param sHour the starting hour for events to be deleted
+	 * creates the components used by the deletePanel. Display never changes, so no update needed. 
 	 */
 	private void deletePanel()
 	{
@@ -344,6 +369,23 @@ public class PlannerView{
 		deleteView.add(delete, BorderLayout.NORTH);
 		
 	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	// -------------------------------------------------------------------------------- //
+	//                 METHODS USED BY THE CONTROLLER (UPDATE / CHANGE THE VIEW)         //
+	// --------------------------------------------------------------------------------- //
+	
+	/**
+	 * changes the view of the planner to the CreateView
+	 * CreateView displays the month calendar, the daily calendar, and a banner with the options ( back, forward, create, exit)
+	 */
 	public void createView()
 	{
 		frame.remove(header);
@@ -351,6 +393,11 @@ public class PlannerView{
 		update();
 	}
 	
+	/**
+	 * changes the view of the planner to the DeleteView
+	 * DeleteView displays the month calendar, the daily calendar, and a banner with the delete option.
+	 * (if somehow reached before selecting an hour from the daily events panel, will delete the zero'th hour of the currently selected day)
+	 */
 	public void deleteView()
 	{
 		frame.remove(header);
@@ -358,6 +405,9 @@ public class PlannerView{
 		update();
 	}
 	
+	/**
+	 * changes the view of the planner to the Standard View. This is the view given on launch.
+	 */
 	public void standardView()
 	{
 		frame.remove(createView);
@@ -368,17 +418,27 @@ public class PlannerView{
 	}
 	
 	/**
-	 * a different day has been selected
-	 * change the day view to reflect that day's events
+	 * updates all the views to reflect data in the model. 
 	 */
 	public void update()
 	{
 		updateMonthView();
 		updateDayView();
 		updateHeader();
+		updateCreateView();
 		frame.validate();
 		frame.repaint();
 	}
+	
+	
+	
+	
+	
+	
+	// -------------------------------------------------------------------------------- //
+	//                 GETTERS AND SIMPLE "DECORATORS"                                  //
+	// --------------------------------------------------------------------------------- //
+	
 	public JPanel getMonthView() {
 		return monthView;
 	}
@@ -434,8 +494,5 @@ public class PlannerView{
 		j.setBackground(Color.BLACK);
 		j.setForeground(Color.WHITE);
 	}
-	
-
-
 }
 

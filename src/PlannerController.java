@@ -1,17 +1,11 @@
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
+import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
-
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
+
 
 /**
- * 
+ * The controller for the Planner.
+ * Takes input from the user, uses it to update the model. The model then notifies the view of the change
  * @author nolan
  *
  */
@@ -19,11 +13,20 @@ public class PlannerController{
 	PlannerModel model;
 	PlannerView view;
 
+	/**
+	 * creates a new plannercontroller object.
+	 * creates its own instances of the model / view
+	 */
 	public PlannerController()
 	{
 		model = new PlannerModel();
 		view = new PlannerView();
 	}
+	
+	/**
+	 * assigns the variables and starts up the View
+	 * "presents the planner object"
+	 */
 	public void run()
 	{
 		model.tryLoad();
@@ -33,14 +36,14 @@ public class PlannerController{
 		attachHeaderListeners();
 		attachCreateListeners();
 		attachDeleteListeners();
-		
-
 	}
 	
+	
+
 	/**
-	 * 
+	 * attaches the 'click on a day on the calendar' functionality to the view
 	 */
-	public void attachMonthListeners()
+	private void attachMonthListeners()
 	{
 		JPanel monthView = view.getMonthView();
 		int count = monthView.getComponentCount();
@@ -53,7 +56,6 @@ public class PlannerController{
 				public void actionPerformed(ActionEvent e) {
 					int day = Integer.valueOf(b.getText());
 					model.setDate(-1, -1, day);
-					System.out.println("Button: " + day);
 					view.standardView();
 				}
 			});
@@ -61,31 +63,10 @@ public class PlannerController{
 	}
 	
 
-
 	/**
-	 * 
+	 * attaches functionality to the default top-button-bar (back, forward, create, exit)
 	 */
-	public void attachDayListeners()
-	{
-		JPanel dayView = view.getDayView();
-		JScrollPane p = (JScrollPane) dayView.getComponent(0);
-		JTable t = (JTable) p.getComponent(0);
-
-		t.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-			@Override
-			public void valueChanged(ListSelectionEvent e) {
-				String s = (String) t.getValueAt(t.getSelectedRow(), 0);
-				view.setDeleteHour( Integer.valueOf(s.substring(0, 2)) );
-				System.out.println(s);
-			}
-		});
-
-	}
-	
-	/**
-	 * 
-	 */
-	public void attachHeaderListeners()
+	private void attachHeaderListeners()
 	{
 		// MAKE ALL THE  BUTTONS
 		JPanel header = view.getHeader();
@@ -96,7 +77,6 @@ public class PlannerController{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				model.changeDate(0, 0, -1);
-				view.update();
 			}
 		});
 		
@@ -105,7 +85,6 @@ public class PlannerController{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				model.changeDate(0, 0, 1);
-				view.update();
 			}
 		});
 		
@@ -130,10 +109,11 @@ public class PlannerController{
 		
 	}
 
+
 	/**
-	 * 
+	 * assigns delete functionality for clicking on the list of daily events & the subsequent delete button showing up.
 	 */
-	public void attachDeleteListeners()
+	private void attachDeleteListeners()
 	{
 		JButton delete = (JButton) view.getDeleteView().getComponent(0);
 		delete.addActionListener(new ActionListener() {
@@ -158,9 +138,9 @@ public class PlannerController{
 	
 	
 	/**
-	 * 
+	 * assigns functionality to the 'create' button, and the following create menu. 
 	 */
-	public void attachCreateListeners()
+	private void attachCreateListeners()
 	{
 		JPanel header = view.getCreateView();
 
@@ -199,7 +179,10 @@ public class PlannerController{
 					end.setText("00:00");
 				}
 				// otherwise the add was successful, update the view to reflect change
-				else view.standardView();
+				else 
+				{
+					view.standardView();
+				}
 				
 			}
 		});
