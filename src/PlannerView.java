@@ -2,6 +2,8 @@ import java.awt.*;
 import java.util.*;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
 
 
 /**
@@ -11,9 +13,10 @@ import javax.swing.*;
  */
 public class PlannerView{
 	private JFrame frame;
-	private JPanel monthView, header, dayView, deleteView, createView;
+	private JPanel monthView, header, dayView, deleteView, createView, overlapWarning;
 	
 	private JTable dayList;
+	private int std_rowHeight;
 	private JLabel dayListHeader;
 	private JButton[] days;
 	
@@ -40,6 +43,7 @@ public class PlannerView{
 		dayPanel();
 		createPanel();
 		deletePanel();
+		overlapPanel();
 		
 		frame.setLayout(new BorderLayout());
 		frame.add(header, BorderLayout.NORTH);
@@ -80,6 +84,11 @@ public class PlannerView{
 		// make the grid of numbered days that will make up monthView of calendar display
 		monthView.setLayout(new GridLayout(7, 7));
 		monthView.setBackground(Color.WHITE);
+		Border border = BorderFactory.createEmptyBorder(monthView.getHeight() + 10,
+				monthView.getWidth() + 10,
+				monthView.getWidth() + 10,
+				monthView.getHeight() + 10);
+		monthView.setBorder(border);
 		
 		// add in row saying days of week, MON, Tues, etc
 		for(String day : PlannerModel.days){
@@ -173,6 +182,7 @@ public class PlannerView{
 			content[i][0] += (i < 12 ? "AM" : "PM");
 		}
 		dayList = new JTable(content, names);
+		std_rowHeight = dayList.getRowHeight();
 		
 		
 		// invariable formatting
@@ -204,9 +214,11 @@ public class PlannerView{
 		dayListHeader.setText(model.getDay() + " " + (model.sMonth + 1) + "/" + model.sDay);
 		dayListHeader.setHorizontalAlignment(SwingConstants.CENTER);
 		
-		int rowHeight = dayList.getRowHeight();
 		for(int i = 0; i < 24; i++)
 		{
+			// reset the rowheight
+			dayList.setRowHeight(i, std_rowHeight);
+			
 			// blank the fields to erase existing data
 			dayList.setValueAt("", i, 1);
 			dayList.setValueAt("", i, 2);
@@ -222,7 +234,7 @@ public class PlannerView{
 				if(eventStart == i)
 				{
 					numEvents++;
-					dayList.setRowHeight(i, numEvents * rowHeight);
+					dayList.setRowHeight(i, numEvents * std_rowHeight);
 					
 					title += e.title + "<br>";
 					sTime += e.startTime + "<br>";
@@ -238,7 +250,6 @@ public class PlannerView{
 			dayList.setValueAt(eTime, i, 3);
 			
 			title = ""; sTime = ""; eTime = "";
-	
 		}
 	}
 	/**
@@ -349,12 +360,39 @@ public class PlannerView{
 				startTime = (JTextField) createView.getComponent(2), 
 				endTime = (JTextField) createView.getComponent(3);
 		JButton date = (JButton) createView.getComponent(1);
-		text.setText("Untitled Event");
+		text.setText("Event Title");
 		startTime.setText("00:00");
 		endTime.setText("00:00");
 		date.setText(model.getSelectedDate());
 		
 	}
+	
+	/**
+	 * fills out the overlapwarning panel
+	 */
+	private void overlapPanel()
+	{
+		overlapWarning = new JPanel(new FlowLayout());
+		overlapWarning.setBackground(Color.WHITE);
+		
+		JTextArea a = new JTextArea("Overlap with existing event detected.");
+		changeFontSize(a,  8);
+		overlapWarning.add(a);
+		
+
+		JButton j = new JButton("CLICK HERE");
+		formatButton(j);
+		changeFontSize(j, 8);
+		overlapWarning.add(j);
+		
+		
+		JTextArea b = new JTextArea("to Re-enter.");
+		changeFontSize(b,  8);
+		overlapWarning.add(b);
+		
+		
+	}
+	
 	/**
 	 * creates the components used by the deletePanel. Display never changes, so no update needed. 
 	 */
@@ -363,12 +401,14 @@ public class PlannerView{
 		deleteView = new JPanel();
 		deleteView.setBackground(Color.WHITE);
 		
-		JButton delete = new JButton("Delete Events For Selected Hour?");
+		JButton delete = new JButton("Delete Events Occuring During Selected Hour?");
 		changeFontSize(delete, 10);
 		formatButton(delete);
 		deleteView.add(delete, BorderLayout.NORTH);
 		
 	}
+	
+	
 	
 	
 	
@@ -388,7 +428,7 @@ public class PlannerView{
 	 */
 	public void createView()
 	{
-		frame.remove(header);
+		clearUpHeader();
 		frame.add(createView, BorderLayout.NORTH);
 		update();
 	}
@@ -400,7 +440,7 @@ public class PlannerView{
 	 */
 	public void deleteView()
 	{
-		frame.remove(header);
+		clearUpHeader();
 		frame.add(deleteView, BorderLayout.NORTH);
 		update();
 	}
@@ -410,13 +450,32 @@ public class PlannerView{
 	 */
 	public void standardView()
 	{
-		frame.remove(createView);
-		frame.remove(deleteView);
-
+		clearUpHeader();
 		frame.add(header, BorderLayout.NORTH);
 		update();
 	}
 	
+	/**
+	 * changes the header view to the overlap detected view. Naturally this is only called if an overlap is detected.
+	 */
+	public void overlapView()
+	{
+		clearUpHeader();
+		frame.add(overlapWarning);
+		update();
+	}
+	
+	/**
+	 * blunt-force removes all panels from the header. 
+	 */
+	private void clearUpHeader()
+	{
+		frame.remove(header);
+		frame.remove(overlapWarning);
+		frame.remove(createView);
+		frame.remove(deleteView);
+	}
+
 	/**
 	 * updates all the views to reflect data in the model. 
 	 */
@@ -462,6 +521,9 @@ public class PlannerView{
 	}
 	public JTable getDayList() {
 		return dayList;
+	}
+	public JPanel getOverlapWarning() {
+		return overlapWarning;
 	}
 	/**
 	 * changes the font size of the passed JTextArea object

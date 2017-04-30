@@ -1,5 +1,7 @@
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+
 import javax.swing.*;
 
 
@@ -52,6 +54,8 @@ public class PlannerController{
 			JButton b = (JButton) monthView.getComponent(i);
 			b.addActionListener(new ActionListener() {
 				
+				// tied to each of the buttons on the monthly view section of the planner
+				// when pressed, change the date to that day
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					int day = Integer.valueOf(b.getText());
@@ -71,7 +75,7 @@ public class PlannerController{
 		// MAKE ALL THE  BUTTONS
 		JPanel header = view.getHeader();
 		
-		// make the back & forward buttons
+		// make the back button
 		JButton back = (JButton) header.getComponent(1);
 		back.addActionListener(new ActionListener() {
 			@Override
@@ -80,6 +84,7 @@ public class PlannerController{
 			}
 		});
 		
+		// the forward button
 		JButton forward = (JButton) header.getComponent(2);
 		forward.addActionListener(new ActionListener() {
 			@Override
@@ -115,6 +120,7 @@ public class PlannerController{
 	 */
 	private void attachDeleteListeners()
 	{
+		// the delete button
 		JButton delete = (JButton) view.getDeleteView().getComponent(0);
 		delete.addActionListener(new ActionListener() {
 			@Override
@@ -124,26 +130,41 @@ public class PlannerController{
 			}
 		});
 		
-		
+		// the JTable functionality
 		JTable list = view.getDayList();
 		list.addMouseListener(new MouseAdapter() {
 			@Override
 		    public void mouseClicked(java.awt.event.MouseEvent e) {
 				int row = list.rowAtPoint(e.getPoint());
-				view.setDeleteHour(row);
-				view.deleteView();
+				// check if events occur during selected hour & day
+				ArrayList<Event> events = model.getEventsForSelectedDay();
+				if(events.size() != 0)
+				{
+					for(Event toCheck : events)
+					{
+						if(toCheck.occurs(row * 60))
+						{
+							view.setDeleteHour(row);
+							view.deleteView();
+							return;
+						}
+					}
+					// no events occur during that hour, default to standard view
+					view.standardView();
+				}
 		    }
 		});
 	}
 	
 	
 	/**
-	 * assigns functionality to the 'create' button, and the following create menu. 
+	 * assigns functionality to the 'create' button, and the following create menu, as well as the overlap warning
 	 */
 	private void attachCreateListeners()
 	{
 		JPanel header = view.getCreateView();
 
+		// the text and functionality of the create new event banner that displays atop the planner
 		JTextField text = (JTextField) header.getComponent(0);
 		text.addMouseListener(new MouseAdapter()
 		{
@@ -151,7 +172,7 @@ public class PlannerController{
 			public void mouseExited(MouseEvent e)
 			{
 				if(text.getText().equals("")) {
-					text.setText("Untitled Event");
+					text.setText("Event Title");
 					text.setForeground(Color.GRAY);
 				}
 			}
@@ -162,6 +183,7 @@ public class PlannerController{
 			}
 		});
 
+		// the save button functionality 
 		JButton save = (JButton) header.getComponent(4);
 		JTextField start = (JTextField) header.getComponent(2), end = (JTextField) header.getComponent(3);
 		
@@ -174,9 +196,8 @@ public class PlannerController{
 				// attempt to add the event, if was overlap prompt the user to change time
 				if(! model.addEvent(t, st, en))	
 				{
-					text.setText("ERROR: overlap");
-					start.setText("00:00");
-					end.setText("00:00");
+					view.overlapView();
+					view.update();
 				}
 				// otherwise the add was successful, update the view to reflect change
 				else 
@@ -184,6 +205,15 @@ public class PlannerController{
 					view.standardView();
 				}
 				
+			}
+		});
+		
+		// the overlap button functionality
+		JButton b = (JButton) view.getOverlapWarning().getComponent(1);
+		b.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				view.createView();
 			}
 		});
 

@@ -84,6 +84,17 @@ public class Event implements Serializable{
 
 		return false;
 	}
+	
+	/**
+	 * checks if the event occurs within that hour (the hour converted to minutes before passed)
+	 * EX: an event lasts from 12:01AM to 1AM, a passed value of 1 - 59 will return true
+	 * @param minutes
+	 * @return
+	 */
+	public boolean occurs(int minutes)
+	{
+		return getStartTimeInMinutes() >= minutes && getStartTimeInMinutes() < minutes + 60;
+	}
 
 	
 	
